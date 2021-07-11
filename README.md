@@ -1,1 +1,19 @@
 # Diffusion_Limited_Cancer_Growth_Model
+
+Here we develop a mechanistic mathematical model to describe the growth and treatment of an avascular tumour for cancer drug development. We list both scripts for the non-spatial and spatial drug models. We also list the mixed effects scripts for the model without drug input. All the workflow is in Matlab.
+
+
+This repository contains the following scripts:
+
+Diffusion_Limited_Time_Dependent_Drug_Fitting_Function.m: This function solves the model with non-spatial drug input. The required inputs are parameters (a vector of 5 elements) and the timeframe of the experiment. The user can manually change the dose timings (currently set to dosing on days 1,8 and 15).
+
+Two_Phase_Spatial_Drug_Function.m: This function solves the diffusion-limited model with spatial drug input. Includes plotting of drug concentration heat maps as well as the model solution.
+
+NLME_PDX.m: MatLab script to apply nonlinear mixed effects modelling to optimise parameters of the diffusion limioted model without drug input using the untreated PDX xenograft database which is also listed in the repository (publicly available data made available by Novartis). Uses the stochastic approximation to expectation maximisation 'nlmefitsa'.
+			 
+If using any parts of this code please cite
+
+```
+A. Nasim, J. Yates, G. Derks, C.M. Dunlop, A spatially resolved mechanistic growth law for
+pharmaceutical pre-clinical trials, European Journal of Cancer, 2021.
+```
