@@ -19,8 +19,8 @@ V_PDAC = linspace(1,no_of_subjects_PDAC,no_of_subjects_PDAC)';
 tdata_GC = xlsread('Gao_Untreated_Vol2.xlsm','GC','b2:b481');
 ydata_GC = xlsread('Gao_Untreated_Vol2.xlsm','GC','c2:c481');
 subject_GC = xlsread('Gao_Untreated_Vol2.xlsm','GC','d2:d481');
-no_of_subjects_GC = subject_CRC(end);
-V_GC = linspace(1,no_of_subjects_PDAC,no_of_subjects_GC)';
+no_of_subjects_GC = subject_GC(end);
+V_GC = linspace(1,no_of_subjects_GC,no_of_subjects_GC)';
 
 tdata_CRC = xlsread('Gao_Untreated_Vol2.xlsm','CRC','b2:b533');
 ydata_CRC = xlsread('Gao_Untreated_Vol2.xlsm','CRC','c2:c533');
@@ -55,7 +55,7 @@ phi0 = [-1 -1 -1 -1];
 [PHI_GC,PSI_GC,stats_GC,res_GC] = nlmefitsa(tdata_GC,ydata_GC,subject_GC,V_GC,nlme_model,phi0,'ParamTransform',[2 2 2 2],'LogLikMethod','lin','ComputeStdErrors',true);
 [PHI_CRC,PSI_CRC,stats_CRC,res_CRC] = nlmefitsa(tdata_CRC,ydata_CRC,subject_CRC,V_CRC,nlme_model,phi0,'ParamTransform',[2 2 2 2],'LogLikMethod','lin','ComputeStdErrors',true);
 [PHI_CM,PSI_CM,stats_CM,res_CM] = nlmefitsa(tdata_CM,ydata_CM,subject_CM,V_CM,nlme_model,phi0,'ParamTransform',[2 2 2 2],'LogLikMethod','lin','ComputeStdErrors',true);
-[PHI_BRCA,PSI_BRCA,stats_BRCA,res_BRCA] = nlmefitsa(tdata_BRCA,ydata_BRCA,subject_BRCA,V_NSCLC,nlme_model,phi0,'ParamTransform',[2 2 2 2],'LogLikMethod','lin','ComputeStdErrors',true);
+[PHI_BRCA,PSI_BRCA,stats_BRCA,res_BRCA] = nlmefitsa(tdata_BRCA,ydata_BRCA,subject_BRCA,V_BRCA,nlme_model,phi0,'ParamTransform',[2 2 2 2],'LogLikMethod','lin','ComputeStdErrors',true);
 [PHI_NSCLC,PSI_NSCLC,stats_NSCLC,res_NSCLC] = nlmefitsa(tdata_NSCLC,ydata_NSCLC,subject_NSCLC,V_NSCLC,nlme_model,phi0,'ParamTransform',[2 2 2 2],'LogLikMethod','lin','ComputeStdErrors',true);
 
 
