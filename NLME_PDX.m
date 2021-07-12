@@ -6,7 +6,7 @@
 % part of https://github.com/DrAdamNasim/Diffusion_Limited_Cancer_Growth_Model
 % If using this or related code please cite 
 % Nasim, A.; Yates, J.; Derks, G.; Dunlop, C. 
-%     Mechanistic mathematical model of tumour growth and inhibition (diffusion-limited model)
+%     Mechanistic mathematical model of tumour growth and inhibition
 %     (Manuscript submitted for publication).
 
 %Split data by cancer type
