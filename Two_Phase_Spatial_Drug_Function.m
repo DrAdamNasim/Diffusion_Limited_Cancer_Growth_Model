@@ -26,12 +26,12 @@ for j = 1:length(F_Vec)
         Dose_i = Dose_Strength(i);
         Outer_Radius = [];
         Plot_Time = [];
-        Td = [1 8 15 50];
+        Td = [1 8 15 38];
         tdata = linspace(Td(1),Td(end));
         %Set parameters
         alpha = 1.39;
         l1_s = sqrt(alpha/((1.8*10^(-5))*60*60*24));%sqrt(wash out rate of drug in tissue/Diffusion coefficient of drug (per day)) - Assume wash out the same as in plasma (ASSUMPTION)
-        Params = [0.131 0.2 8e-3 0.333 0.413];
+        Params = [0.131 0.02 20e-3 0.333 0.413];
         L = Params(1); %Growth rate
         mu = Params(2); %Loss rate from necrotic region
         Kill = Params(3); %Drug potency
@@ -60,171 +60,171 @@ for j = 1:length(F_Vec)
         M1 = [1 0 ; 0 0];
         options1 = odeset('Events', @events1);
         options2 = odeset('Mass',M1,'Events', @events2);
-        options3 = odeset('Events', @events2);
+        options3 = odeset('Events', @events3);
         r = [];
         rd = [];
-            while m<noDose
-                if  t(end)<Td(1) && Fl==0    
-                    Kill=0;%No dosing in this phase
-                    w_ext = 0;
-                    Sol1 = ode45(@(t,r) L.*r./3, [t(end),Td(1)], r0,options1);
-                    %For plotting outer radius/Volume
-                    Outer_Radius = [Outer_Radius Sol1.y];
-                    Plot_Time = [Plot_Time Sol1.x];
-                    %
-                    ie = Sol1.ie;
-                    time_end = Sol1.x(end);
-                    timed1 = tdata(tdata<time_end);
-                    S1 = size(timed1);
-                    if S1(2)==0
-                    else
-                    Deval_time1 = tdata(tdata<time_end);
-                    ad = deval(Sol1,Deval_time1);
-                    elementsd = size(Deval_time1);
+        while m<noDose
+            if  t(end)<Td(1) && Fl==0    
+                Kill=0;%No dosing in this phase
+                w_ext = 0;
+                Sol1 = ode45(@(t,r) L.*r./3, [t(end),Td(1)], r0,options1);
+                %For plotting outer radius/Volume
+                Outer_Radius = [Outer_Radius Sol1.y];
+                Plot_Time = [Plot_Time Sol1.x];
+                %
+                ie = Sol1.ie;
+                time_end = Sol1.x(end);
+                timed1 = tdata(tdata<time_end);
+                S1 = size(timed1);
+                if S1(2)==0
+                else
+                Deval_time1 = tdata(tdata<time_end);
+                ad = deval(Sol1,Deval_time1);
+                elementsd = size(Deval_time1);
+                rQd = zeros(1,elementsd(2));
+                rd = [ad;rQd];
+                end
+                a = real(Sol1.y);
+                at = Sol1.x;
+                t = at;
+                %Make rN artificially 0 so concatenation is possible
+                elements = size(t); %how many elements of zero we need
+                rQ = zeros(1,elements(2));
+                r = [a;rQ];
+                YI=a(:,end);
+                r04 = [YI;0];
+
+            elseif t(end)<Td(1) && Fl==1
+                Kill=0;%No dosing in this phase
+                w_ext = 0;
+                Sol2 = ode15s(@Phase2_DAE,[t(end),Td(1)],r04,options2);
+                t2 = Sol2.x(1);
+                t2end = Sol2.x(end);
+                %For plotting outer radius/Volume
+                Outer_b = Sol2.y;
+                Outer_b = Outer_b(1,:);
+                Outer_Radius = [Outer_Radius Outer_b];
+                Plot_Time = [Plot_Time Sol2.x];
+                ie = Sol2.ie;
+                %DEVAL
+                timed = tdata(tdata>=t(end) & tdata<Td(1));
+                S1 = size(timed);
+                if S1(2) ==0
+                else 
+                    Deval_time1 = timed;
+                    rd = deval(Sol2,Deval_time1);
+                end
+                bt = Sol2.x;
+                b = real(Sol2.y);
+                if t ==0
+                    t = bt;
+                else
+                    t = [at bt];
+                end
+                YI = b(:,end);
+                r = [r b];
+
+            elseif t(end)>=Td(1) && Fl==0
+                Kill = Params(3);
+                if Dose_i == 0
+                    Kill=0;
+                end
+                if Td(m)==0
+                    YI = r0;
+                end
+                Sol3 = ode45(@DifEqn, [t(end)-Td(m),Td(m+1)-Td(m)], YI(1),options3);
+                ie = Sol3.ie;
+                %For plotting
+                Outer_c = Sol3.y;
+                Outer_c = Outer_c(1,:);
+                Outer_Radius = [Outer_Radius Outer_c];
+                Plot_Time = [Plot_Time Sol3.x+Td(m)];
+                %DEVAL
+                 time1 = Sol3.x(end)+Td(m);
+                 if m == 4
+                    timed = tdata(tdata>=t(end) & tdata<=time1);
+                 else
+                    timed = tdata(tdata>=t(end) & tdata<time1);
+                 end
+                if isempty(timed)  
+
+                else
+                    Deval_time2 = timed-Td(m);
+                    cd = deval(Sol3,Deval_time2);
+                    elementsd = size(Deval_time2);
                     rQd = zeros(1,elementsd(2));
-                    rd = [ad;rQd];
-                    end
-                    a = real(Sol1.y);
-                    at = Sol1.x;
-                    t = at;
-                    %Make rN artificially 0 so concatenation is possible
-                    elements = size(t); %how many elements of zero we need
-                    rQ = zeros(1,elements(2));
-                    r = [a;rQ];
-                    YI=a(:,end);
-                    r04 = [YI;0];
+                    cd = [cd;rQd];
+                    rd = [rd cd];
+                end   
+                time_t = Sol3.x;
+                elements2 = size(time_t);
+                rQ = zeros(1,elements2(2));
+                ct = Sol3.x + Td(m);
+                c = real(Sol3.y);
+                c = [c;rQ];
+                YI= c(:,end);
+                t = [t ct];
+                r = [r c];
+               YI=YI(:,end);
+            elseif t(end)>=Td(1) && Fl==1
+                Kill=Params(3);
+                if Dose_i == 0
+                    Kill=0;
+                end            
+                Sol4 = ode15s(@Phase2_DAE,[t(end)-Td(m),Td(m+1)-Td(m)],YI,options2);
+                ie = Sol4.ie;
+                %For plotting
+                Outer_d = Sol4.y;
+                Outer_d = Outer_d(1,:);
+                Outer_Radius = [Outer_Radius Outer_d];
+                Plot_Time = [Plot_Time Sol4.x+Td(m)];
+                %Deval
+                 time1 = Sol4.x(end)+Td(m);
+                 if m == 4
+                    timed = tdata(tdata>=t(end) & tdata<=time1);
+                 else
+                    timed = tdata(tdata>=t(end) & tdata<time1);
+                 end
+                if isempty(timed)  
 
-                elseif t(end)<Td(1) && Fl==1
-                    Kill=0;%No dosing in this phase
-                    w_ext = 0;
-                    Sol2 = ode15s(@Phase2_DAE,[t(end),Td(1)],r04,options2);
-                    t2 = Sol2.x(1);
-                    t2end = Sol2.x(end);
-                    %For plotting outer radius/Volume
-                    Outer_b = Sol2.y;
-                    Outer_b = Outer_b(1,:);
-                    Outer_Radius = [Outer_Radius Outer_b];
-                    Plot_Time = [Plot_Time Sol2.x];
-                    ie = Sol2.ie;
-                    %DEVAL
-                    timed = tdata(tdata>=t(end) & tdata<Td(1));
-                    S1 = size(timed);
-                    if S1(2) ==0
-                    else 
-                        Deval_time1 = timed;
-                        rd = deval(Sol2,Deval_time1);
-                    end
-                    bt = Sol2.x;
-                    b = real(Sol2.y);
-                    if t ==0
-                        t = bt;
-                    else
-                        t = [at bt];
-                    end
-                    YI = b(:,end);
-                    r = [r b];
-
-                elseif t(end)>=Td(1) && Fl==0
-                    Kill = Params(3);
-                    if Dose_i == 0
-                        Kill=0;
-                    end
-                    if Td(m)==0
-                        YI = r0;
-                    end
-                    Sol3 = ode45(@DifEqn, [t(end)-Td(m),Td(m+1)-Td(m)], YI(1),options3);
-                    ie = Sol3.ie;
-                    %For plotting
-                    Outer_c = Sol3.y;
-                    Outer_c = Outer_c(1,:);
-                    Outer_Radius = [Outer_Radius Outer_c];
-                    Plot_Time = [Plot_Time Sol3.x+Td(m)];
-                    %DEVAL
-                     time1 = Sol3.x(end)+Td(m);
-                     if m == 4
-                        timed = tdata(tdata>=t(end) & tdata<=time1);
-                     else
-                        timed = tdata(tdata>=t(end) & tdata<time1);
-                     end
-                    if isempty(timed)  
-
-                    else
-                        Deval_time2 = timed-Td(m);
-                        cd = deval(Sol3,Deval_time2);
-                        elementsd = size(Deval_time2);
-                        rQd = zeros(1,elementsd(2));
-                        cd = [cd;rQd];
-                        rd = [rd cd];
-                    end   
-                    time_t = Sol3.x;
-                    elements2 = size(time_t);
-                    rQ = zeros(1,elements2(2));
-                    ct = Sol3.x + Td(m);
-                    c = real(Sol3.y);
-                    c = [c;rQ];
-                    YI= c(:,end);
-                    t = [t ct];
-                    r = [r c];
-                   YI=YI(:,end);
-                elseif t(end)>=Td(1) && Fl==1
-                    Kill=Params(3);
-                    if Dose_i == 0
-                        Kill=0;
-                    end            
-                    Sol4 = ode15s(@Phase2_DAE,[t(end)-Td(m),Td(m+1)-Td(m)],YI,options2);
-                    ie = Sol4.ie;
-                    %For plotting
-                    Outer_d = Sol4.y;
-                    Outer_d = Outer_d(1,:);
-                    Outer_Radius = [Outer_Radius Outer_d];
-                    Plot_Time = [Plot_Time Sol4.x+Td(m)];
-                    %Deval
-                     time1 = Sol4.x(end)+Td(m);
-                     if m == 4
-                        timed = tdata(tdata>=t(end) & tdata<=time1);
-                     else
-                        timed = tdata(tdata>=t(end) & tdata<time1);
-                     end
-                    if isempty(timed)  
-
-                    else
-                        Deval_time2 = timed-Td(m);
-                        cd = deval(Sol4,Deval_time2);              
-                        rd = [rd cd];
-                    end 
-                    dt = Sol4.x + Td(m);
-                    d = real(Sol4.y);
-                    YI=d(:,end);
-                    t = [t dt];
-                    r = [r d];      
-                    YI=YI(:,end);
-                end
-                %% toggle flag
-                s=size(ie);
-                s=s(1);
-                if ie==1 %i.e. an event happened change flag
-                    if Fl==0
-                        Fl=1; %adjust for the cases you set
-                    else
-                        Fl=0;
-                    end
-                elseif s==0 && t(end)==Td(1) %i.e. no event happened just got to end of first phase
-                    %dont do anything
-                elseif s==0 && t(end)>Td(1) %i.e. just got to end of one phase
-                    m=m+1;
-                    Dose = Dose_i + w_ext(end);
-                end
-                 n=n+1;
-                 ie=[]; 
+                else
+                    Deval_time2 = timed-Td(m);
+                    cd = deval(Sol4,Deval_time2);              
+                    rd = [rd cd];
+                end 
+                dt = Sol4.x + Td(m);
+                d = real(Sol4.y);
+                YI=d(:,end);
+                t = [t dt];
+                r = [r d];      
+                YI=YI(:,end);
             end
-            R = r(1,:);
-            RQ = sqrt(r(2,:));%The sqrt is used due to the variable substitution see the Phase2_DAE function below
-            GF_Size = size(R);
-            size(RQ);
-            GF_Vec = ones(1,GF_Size(2));
-            GF = GF_Vec - (RQ./R).^3;
-            Volume = (4/3)*pi*Outer_Radius.^3;
-            i = i+1;
+            %% toggle flag
+            s=size(ie);
+            s=s(1);
+            if ie==1 %i.e. an event happened change flag
+                if Fl==0
+                    Fl=1; %adjust for the cases you set
+                else
+                    Fl=0;
+                end
+            elseif s==0 && t(end)==Td(1) %i.e. no event happened just got to end of first phase
+                %dont do anything
+            elseif s==0 && t(end)>Td(1) %i.e. just got to end of one phase
+                m=m+1;
+                Dose = Dose_i + w_ext(end);
+            end
+             n=n+1;
+             ie=[]; 
+        end
+        R = r(1,:);
+        RQ = sqrt(r(2,:));%The sqrt is used due to the variable substitution see the Phase2_DAE function below
+        GF_Size = size(R);
+        size(RQ);
+        GF_Vec = ones(1,GF_Size(2));
+        GF = GF_Vec - (RQ./R).^3;
+        Volume = (4/3)*pi*Outer_Radius.^3;
+        i = i+1;
     end
     %Define which time point to evaluate the drug concentration at
     Day_of_Dose = Td(3);
@@ -345,7 +345,7 @@ else
     M = (F*besseli(3/2,F*sqrt(abs(R_N))).*besseli(1/2,l1_s*sqrt(abs(R_N)))-l1_s*besseli(1/2,F*sqrt(abs(R_N))).*besseli(3/2,l1_s*sqrt(abs(R_N))))./((l1_s*besselk(1/2,F*sqrt(abs(R_N))).*besseli(3/2,l1_s*sqrt(abs(R_N)))+F*besselk(3/2,F*sqrt(abs(R_N))).*besseli(1/2,l1_s*sqrt(abs(R_N)))));            
     s = linspace(sqrt(abs(R_N)),R_T,50);
     w = s.^2.*Kill.*w_ext.*sqrt(R_T).*(besseli(1/2,F.*s)+M.*besselk(1/2,F.*s))./(sqrt(s).*(besseli(1/2,F.*R_T)+M.*besselk(1/2,F.*R_T)));
-    f =  [(L.*(R_T.^3)-mu.*(sqrt(abs(R_N))).^3)./(3.*R_T.^2) - (1./(R_T.^2)).*trapz(s,w);
+    f =  [(L.*(R_T.^3-sqrt(abs(R_N)).^3)-mu.*(sqrt(abs(R_N))).^3)./(3.*R_T.^2) - (1./(R_T.^2)).*trapz(s,w);
     -(rstar./r(1)).^2 + (1 + 2.*sqrt(abs(R_N))./r(1)).*(1 - sqrt(abs(R_N))./r(1)).^2];
 end
 end
@@ -358,16 +358,22 @@ function f = DifEqn(t,r)
  f = L.*R_T./3 - (1./(R_T.^2)).*trapz(s,w);
 end
 
-function [check, isterminal, direction] = events1(~,r)
-    direction = [];
-    isterminal = 1;%terminate integration when event occurs
-    check = double(r(1,:) < rstar); %terminate second phase when critical size is reached
-end
-function [check, isterminal, direction] = events2(~,r)
-  direction = -1;   % Negative direction only
-  isterminal = 1;%terminate integration when event occurs
-  check = double( r(1,:) > rstar);
-end
+    function [check, isterminal, direction] = events2(~,r)
+       direction = -1;   % Negative direction only
+      isterminal = 1;%terminate integration when event occurs
+      check = double( r(1,:) > rstar);
+    end
+
+    function [check, isterminal, direction] = events1(~,r)
+        direction = [];
+        isterminal = 1;%terminate integration when event occurs
+        check = double(r(1,:) < rstar); %terminate second phase when critical size is reached
+    end
+    function [check, isterminal, direction] = events3(~,r)
+        direction = [];
+        isterminal = 1;%terminate integration when event occurs
+        check = double(r(1,:) > rstar); %terminate second phase when critical size is reached
+    end
 function circle(x,y,r,line_style,colour)
 %x and y are the coordinates of the center of the circle
 %r is the radius of the circle, 0.01 is the anglular step
@@ -379,15 +385,3 @@ z = repmat(100,1,ZL);
 plot3(x+xp,y+yp,z,'Linewidth',3,'LineStyle',line_style,'Color', colour);
 end
 end
-
-
-
-
-
-
-
-
-
-
-
-
