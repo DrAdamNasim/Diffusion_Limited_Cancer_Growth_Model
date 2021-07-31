@@ -1,4 +1,4 @@
-function Volume = Two_Phase_Spatial_Drug_Function(Params,tdata)
+function Volume = Two_Phase_Spatial_Drug_Hyperbolic_Function(Params,tdata)
 
 % Author: Adam Nasim,
 %
@@ -30,8 +30,8 @@ for j = 1:length(F_Vec)
         tdata = linspace(Td(1),Td(end));
         %Set parameters
         alpha = 1.39;
-        l1_s = sqrt(alpha/((1.8*10^(-5))*60*60*24));%sqrt(wash out rate of drug in tissue/Diffusion coefficient of drug (per day)) - Assume wash out the same as in plasma (ASSUMPTION)
-        Params = [0.131 0.02 20e-3 0.333 0.413];
+        E = sqrt(alpha/((1.8*10^(-5))*60*60*24));%sqrt(wash out rate of drug in tissue/Diffusion coefficient of drug (per day)) - Assume wash out the same as in plasma (ASSUMPTION)
+        Params = [0.131 0.02 8e-3 0.333 0.413];
         L = Params(1); %Growth rate
         mu = Params(2); %Loss rate from necrotic region
         Kill = Params(3); %Drug potency
@@ -218,11 +218,11 @@ for j = 1:length(F_Vec)
              ie=[]; 
         end
         R = r(1,:);
-        RQ = sqrt(r(2,:));%The sqrt is used due to the variable substitution see the Phase2_DAE function below
+        RN = sqrt(r(2,:));%The sqrt is used due to the variable substitution see the Phase2_DAE function below
         GF_Size = size(R);
-        size(RQ);
+        size(RN);
         GF_Vec = ones(1,GF_Size(2));
-        GF = GF_Vec - (RQ./R).^3;
+        GF = GF_Vec - (RN./R).^3;
         Volume = (4/3)*pi*Outer_Radius.^3;
         i = i+1;
     end
@@ -244,22 +244,17 @@ for j = 1:length(F_Vec)
     w_ext = W_ext_after_1st_Dose;
     % Here we use the hyperbolic form of the drug concentration w, in the functions below we
     % choose to use Bessel functions instead. Both are equivalent.
-    f_R_N = (l1_s.*RQ(m_I)*cosh(l1_s.*RQ(m_I))-sinh(l1_s.*RQ(m_I)))./((l1_s.^(1/2)).*sqrt(F).*RQ(m_I).^2);
-    g_R_N = (F.*RQ(m_I).*cosh(F.*RQ(m_I))-sinh(F.*RQ(m_I)))./(F.*RQ(m_I).^2);
-    h_R_N = ((pi.*(F.*RQ(m_I)+1)).*exp(-F.*RQ(m_I)))./(2.*F.*RQ(m_I).^2);
-    aa = (-besseli(0.5,F.*RQ(m_I))./besseli(0.5,l1_s.*RQ(m_I))).*f_R_N+g_R_N;
-    bb = (besselk(0.5,F.*RQ(m_I))./besseli(0.5,l1_s.*RQ(m_I))).*f_R_N+h_R_N;
-    M = aa./bb;
-    C_t = sqrt(2.*F.*R(m_I)./pi).*w_ext./(besseli(0.5,F.*R(m_I))+M.*besselk(0.5,F.*R(m_I)));
-    D_t = C_t.*M;
-    A_t = (C_t.*besseli(0.5,F.*RQ(m_I))+D_t.*besselk(0.5,F.*RQ(m_I)))./(besseli(0.5,l1_s.*RQ(m_I)));
+    M = (E.*cosh(E*RN(m_I)).*cosh(F*RN(m_I))-F.*sinh(F*RN(m_I)).*sinh(E.*RN(m_I)))./(E*cosh(E*RN(m_I)).*sinh(F*RN(m_I))-F*cosh(F*RN(m_I)).*sinh(E*RN(m_I)));
+    A = -M*F*R(m_I)./(cosh(F*R(m_I))-M*sinh(F*R(m_I)));
+    B = -A./M;
+    A_Hat = (A.*sinh(F*RN(m_I))+B.*cosh(F.*RN(m_I)))./(sinh(E.*RN(m_I)));
     for HH=1:DPI
        for YY = 1:DPI
             Radius = sqrt(X(HH).^2+Y(YY).^2);
-            if Radius<=RQ(m_I)
-                    WW(HH,YY) = A_t.*sqrt(pi./(2.*F.*Radius)).*besseli(0.5,l1_s.*Radius);
-            elseif Radius<=R(m_I) && Radius>=RQ(m_I)
-                    WW(HH,YY) = sqrt(pi./(2.*F.*Radius)).*((C_t.*besseli(0.5,F.*Radius) + D_t.*besselk(0.5,F.*Radius)));
+            if Radius<=RN(m_I)
+                    WW(HH,YY) = A_Hat.*w_ext.*sinh(E.*Radius)./(F.*Radius);
+            elseif Radius<=R(m_I) && Radius>=RN(m_I)
+                    WW(HH,YY) = A.*w_ext.*sinh(F*Radius)./(F*Radius) + B.*w_ext.*cosh(F*Radius)./(F*Radius);
             else
                 WEXT = max(WW);
                 WVAL = max(WEXT);
@@ -275,7 +270,7 @@ for j = 1:length(F_Vec)
         if Radius<=rstar
             R_TT = Radius_Drug_Con(end);
                 Drug_Con(DD) = (w_ext.*(R_TT)./(besseli(0.5,F.*R_TT))).*(besseli(0.5,F.*Radius)./sqrt(Radius));
-        elseif Radius<=R(m_I) && Radius>=RQ(m_I)
+        elseif Radius<=R(m_I) && Radius>=RN(m_I)
                 Drug_Con(DD) = sqrt(pi./(2.*F.*Radius)).*((C_t.*besseli(0.5,F.*Radius) + D_t.*besselk(0.5,F.*Radius)));
         else
             DEXT = max(WW);
@@ -295,8 +290,8 @@ for j = 1:length(F_Vec)
     legend box off
     hold on
 
-    %For necrotic overlay on heatmap
-    Necrotic_Radius = RQ(m_I);
+    %Heatmap plots
+    Necrotic_Radius = RN(m_I);
     figure(j)
     WW_Max_Vec = max(WW);
     WW_Max = WW_Max_Vec(1);
@@ -305,6 +300,7 @@ for j = 1:length(F_Vec)
     hold on
     colorbar()
     h = colorbar;
+    %For necrotic overlay on heatmap
     circle(0,0,Necrotic_Radius,'--',[0.65 0.65 0.65])
     circle(0,0,Tumour_Radius,'-',[0 0 0])
     set(get(h,'label'),'string','Drug Concentration (%)');
@@ -316,6 +312,7 @@ for j = 1:length(F_Vec)
     set(gca,'yticklabel',[])
     caxis([10 100])
     axis square
+    
     %Plot solution 
     figure(length(F_Vec)+2)
     yyaxis left
@@ -332,8 +329,7 @@ box off
 %%%%%%%%%%%%%%%____________________%%%%%%%%%%%%%%%
 function f = Phase2_DAE(t,r)
 %We use a change of variables R_N->sqrt(R_N) (abusing notation) to
-%allow us to satisfy the Index 1 property of algebraic differential
-%equations
+%allow us to satisfy the Index 1 property of algebraic differential equations
 R_T = r(1);
 R_N = r(2);
 w_ext = Dose*exp(-alpha.*t);
@@ -342,7 +338,7 @@ if r(2) == 0
     w = s.^(3/2).*Kill.*w_ext*sqrt(R_T).*besseli(1/2,F.*s)./(besseli(1/2,F.*R_T));
     f = L.*R_T./3 - (1./(R_T.^2)).*trapz(s,w);
 else
-    M = (F*besseli(3/2,F*sqrt(abs(R_N))).*besseli(1/2,l1_s*sqrt(abs(R_N)))-l1_s*besseli(1/2,F*sqrt(abs(R_N))).*besseli(3/2,l1_s*sqrt(abs(R_N))))./((l1_s*besselk(1/2,F*sqrt(abs(R_N))).*besseli(3/2,l1_s*sqrt(abs(R_N)))+F*besselk(3/2,F*sqrt(abs(R_N))).*besseli(1/2,l1_s*sqrt(abs(R_N)))));            
+    M = (F*besseli(3/2,F*sqrt(abs(R_N))).*besseli(1/2,E*sqrt(abs(R_N)))-E*besseli(1/2,F*sqrt(abs(R_N))).*besseli(3/2,E*sqrt(abs(R_N))))./((E*besselk(1/2,F*sqrt(abs(R_N))).*besseli(3/2,E*sqrt(abs(R_N)))+F*besselk(3/2,F*sqrt(abs(R_N))).*besseli(1/2,E*sqrt(abs(R_N)))));            
     s = linspace(sqrt(abs(R_N)),R_T,50);
     w = s.^2.*Kill.*w_ext.*sqrt(R_T).*(besseli(1/2,F.*s)+M.*besselk(1/2,F.*s))./(sqrt(s).*(besseli(1/2,F.*R_T)+M.*besselk(1/2,F.*R_T)));
     f =  [(L.*(R_T.^3-sqrt(abs(R_N)).^3)-mu.*(sqrt(abs(R_N))).^3)./(3.*R_T.^2) - (1./(R_T.^2)).*trapz(s,w);
