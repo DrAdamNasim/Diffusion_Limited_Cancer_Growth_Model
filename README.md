@@ -11,7 +11,7 @@ Two_Phase_Spatial_Drug_Function.m: This function solves the diffusion-limited mo
 
 Diffusion_Limited_Growth_Model_NLME.m: MatLab script to apply nonlinear mixed effects modelling to optimise parameters of the diffusion limioted model without drug input. This uses randomly generated mock data from the function Mock_Growth_Data_Generator.m described below. Uses the stochastic approximation to expectation maximisation 'nlmefitsa'.
 
-Mock_Growth_Data_Generator.m: Randomly generates mock tumour growth data. This is done by drawing from a uniform distribution (from 0-1) and sorting into ascending order. Data for volume, time, subject and group data arranged into format for nlme fitting. 
+Mock_Growth_Data_Generator.m: Randomly generates mock tumour growth data. This is done by drawing from a uniform distribution (from 0-1) and sorting into ascending order. Data for volume, time, subject and group are arranged into format for nlme fitting. 
 			 
 If using any parts of this code please cite
 
