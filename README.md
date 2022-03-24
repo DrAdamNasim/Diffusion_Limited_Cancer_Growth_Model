@@ -16,6 +16,6 @@ Mock_Growth_Data_Generator.m: Randomly generates mock tumour growth data. This i
 If using any parts of this code please cite
 
 ```
-A. Nasim, J. Yates, G. Derks, C.M. A spatially resolved mechanistic growth law for cancer drug development predicting tumour growing fractions,
+A. Nasim, J. Yates, G. Derks, C.M.Dunlop A spatially resolved mechanistic growth law for cancer drug development predicting tumour growing fractions,
  Cancer Research Communications, 2022.
 ```
